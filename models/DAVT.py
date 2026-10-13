@@ -453,50 +453,6 @@ class GFFN(nn.Module):
 
 ################################################
 
-###############################################
-# 小波变换，严格使用这个
-class DWT(nn.Module):
-    def __init__(self):
-        super(DWT, self).__init__()
-
-    def forward(self, x):
-        # 先 pad 成偶数尺寸
-        B, C, H, W = x.size()
-        if H % 2 != 0 or W % 2 != 0:
-            x = F.pad(x, (0, W % 2, 0, H % 2), mode='reflect')
-
-        x1 = x[:, :, 0::2, 0::2]  # top-left
-        x2 = x[:, :, 0::2, 1::2]  # top-right
-        x3 = x[:, :, 1::2, 0::2]  # bottom-left
-        x4 = x[:, :, 1::2, 1::2]  # bottom-right
-
-        x_LL = (x1 + x2 + x3 + x4) * 0.5
-        x_HL = (x1 - x2 + x3 - x4) * 0.5
-        x_LH = (x1 + x2 - x3 - x4) * 0.5
-        x_HH = (x1 - x2 - x3 + x4) * 0.5
-
-        return x_LL, x_HL, x_LH, x_HH
-
-
-class IDWT(nn.Module):
-    def __init__(self):
-        super(IDWT, self).__init__()
-
-    def forward(self, x_LL, x_HL, x_LH, x_HH):
-        x1 = (x_LL + x_HL + x_LH + x_HH) * 0.5
-        x2 = (x_LL - x_HL + x_LH - x_HH) * 0.5
-        x3 = (x_LL + x_HL - x_LH - x_HH) * 0.5
-        x4 = (x_LL - x_HL - x_LH + x_HH) * 0.5
-
-        B, C, H, W = x_LL.shape
-        out = torch.zeros(B, C, H * 2, W * 2, device=x_LL.device, dtype=x_LL.dtype)
-
-        out[:, :, 0::2, 0::2] = x1
-        out[:, :, 0::2, 1::2] = x2
-        out[:, :, 1::2, 0::2] = x3
-        out[:, :, 1::2, 1::2] = x4
-        return out
-
 
 class SpectralConv2D(nn.Module):
     def __init__(self, channels, kernel_size=3):
